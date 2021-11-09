@@ -3,6 +3,8 @@
 from pathlib import Path
 import random
 
+import matplotlib.pyplot as plt
+import numpy as np
 from PIL import Image, ImageDraw
 import tensorflow as tf
 
@@ -30,66 +32,101 @@ def paste_ball_in_bg(bg_img, ball_img):
     truth_draw.rectangle((x, y, x+w, y+h), fill=1)
     return truth_img
 
-def random_path_generator(folder_path):
-    """
-    Generator that returns random file paths in the given folder.
+def image_generator(folder_path, ball_path, batch_size, num_batches=None, shuffle=True):
 
-    Only files ending with .jpg
-    """
-    files = list(folder_path.glob("*.jpg"))
-    while True:
-        yield random.choice(files)
+    def gen_img_pair(bg_path, ball_path):
 
-def image_generator(path_gen, ball_img_path):
-    """
-    Get a tuple with a generated image and ground truth
-    """
-
-    with Image.open(ball_img_path) as ball_img:
-        while True:
-            bg_path = next(path_gen)
+        with Image.open(ball_path) as ball_img:
             with Image.open(bg_path) as bg_img:
+                ball_img = ball_img.convert("RGB")
+                bg_img = bg_img.convert("RGB")
+
+                # TODO
+                bg_img = bg_img.crop((0, 0, 200, 200))
+
                 truth_img = paste_ball_in_bg(bg_img, ball_img)
+                return bg_img, truth_img
 
-                yield bg_img, truth_img
+    def preprocess_img(img_array):
+        return img_array / np.max(img_array)
 
-def batch_generator(image_gen):
-    """
-    Converts images to tensors and..
-    """
-    for bg_img, truth_img in image_gen:
-        bg_tensor = tf.convert_to_tensor(tf.keras.preprocessing.image.img_to_array(bg_img))
-        truth_tensor = tf.convert_to_tensor(tf.keras.preprocessing.image.img_to_array(bg_img))
-
-        yield bg_tensor, truth_tensor
-
-
-path_gen = random_path_generator(val2017_folder_path)
-image_gen = image_generator(path_gen, ball_img_path)
-batch_gen = batch_generator(image_gen)
+    def to_tensors(imgs):
+        x_img, y_img = imgs
+        return (
+            tf.convert_to_tensor(preprocess_img(
+                tf.keras.preprocessing.image.img_to_array(x_img)
+            )),
+            tf.convert_to_tensor(
+                tf.keras.preprocessing.image.img_to_array(y_img)
+            ),
+        )
 
 
+    images_paths = list(folder_path.glob("*.jpg"))
+    if shuffle:
+        random.shuffle(images_paths)
+    num_images = len(images_paths)
+    if not num_batches:
+        num_batches = int(np.ceil(num_images/batch_size))
 
-x, y = next(image_gen)
-x.show()
-y.show()
+    for batch in range(num_batches):
 
+        x_imgs = []
+        y_imgs = []
 
-next(batch_gen)
+        for i in range(batch_size):
 
+            index = batch * batch_size + i
+            x, y = to_tensors(gen_img_pair(images_paths[index], ball_path))
+            x_imgs.append(x)
+            y_imgs.append(y)
 
-dataset = tf.data.Dataset.from_generator(
-        lambda: batch_gen,
+        yield np.array(x_imgs), np.array(y_imgs)
+
+batch_size = 16
+num_batches = 10
+
+train_dataset = tf.data.Dataset.from_generator(
+        lambda: image_generator(val2017_folder_path, ball_img_path, batch_size, num_batches, shuffle=True),
         output_signature=(
-            tf.TensorSpec(shape=(None, None, None), dtype=tf.int32),
-            tf.TensorSpec(shape=(None, None, None), dtype=tf.int32),
+            tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None, None, 1), dtype=tf.float32),
         )
     )
 
-# model = models.Sequential()
-# model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(32, 32, 3)))
-# model.add(layers.MaxPooling2D((2, 2)))
-# model.add(layers.Conv2D(64, (3, 3), activation='relu'))
-# model.add(layers.MaxPooling2D((2, 2)))
-# model.add(layers.Conv2D(64, (3, 3), activation='relu'))
+val_dataset = tf.data.Dataset.from_generator(
+        lambda: image_generator(val2017_folder_path, ball_img_path, batch_size, num_batches, shuffle=False),
+        output_signature=(
+            tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
+            tf.TensorSpec(shape=(None, None, None, 1), dtype=tf.float32),
+        )
+    )
 
+
+model = tf.keras.Sequential()
+model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu', padding='same'))#, input_shape=(32, 32, 3)))
+model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu', padding='same'))
+model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+# model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu'))
+# model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+model.add(tf.keras.layers.Conv2DTranspose(16, (3, 3), strides=2,
+    activation='sigmoid', padding='same'))
+model.add(tf.keras.layers.Conv2DTranspose(1, (3, 3), strides=2,
+    activation='sigmoid', padding='same'))
+
+model.compile(optimizer=tf.keras.optimizers.Adam(1e-3), loss='binary_crossentropy')
+
+model.fit(
+        train_dataset,
+        validation_data=val_dataset,
+        epochs=10,
+        verbose=1,
+    )
+
+image_gen = image_generator(val2017_folder_path, ball_img_path, batch_size=16, shuffle=False)
+x, y = next(image_gen)
+img = x[0]
+y_est = model.predict(x)
+plt.imshow(y_est[0].squeeze())
+plt.show()
