@@ -6,9 +6,8 @@ import random
 
 import numpy as np
 from PIL import Image, ImageDraw
-import tensorflow as tf
 
-def _paste_ball_in_bg(bg_img, ball_img):
+def _paste_ball_in_bg(bg_img, ball_img, params):
     """
     Pastes the ball into the background image in a random position.
 
@@ -26,10 +25,17 @@ def _paste_ball_in_bg(bg_img, ball_img):
 
     truth_img = Image.new(mode="1", size=(bg_w, bg_h), color=0)
     truth_draw = ImageDraw.Draw(truth_img)
-    truth_draw.rectangle((x, y, x+w, y+h), fill=1)
+
+    shape = params.get("ground_truth_shape") or "rect"
+
+    if shape == "rect":
+        truth_draw.rectangle((x, y, x+w, y+h), fill=1)
+    elif shape == "circle":
+        truth_draw.ellipse((x, y, x+w, y+h), fill=1)
+
     return truth_img
 
-def _gen_img_pair(bg_path, ball_path):
+def _gen_img_pair(bg_path, ball_path, params):
 
     with Image.open(ball_path) as ball_img:
         with Image.open(bg_path) as bg_img:
@@ -39,13 +45,16 @@ def _gen_img_pair(bg_path, ball_path):
             # TODO
             bg_img = bg_img.crop((0, 0, 200, 200))
 
-            truth_img = _paste_ball_in_bg(bg_img, ball_img)
+            truth_img = _paste_ball_in_bg(bg_img, ball_img, params)
             return bg_img, truth_img
 
 def _preprocess_img(img_array):
     return img_array / np.max(img_array)
 
 def _to_tensors(imgs):
+
+    import tensorflow as tf
+
     x_img, y_img = imgs
     return (
         tf.convert_to_tensor(_preprocess_img(
@@ -56,7 +65,7 @@ def _to_tensors(imgs):
         ),
     )
 
-def image_generator(folder_path, ball_path, batch_size, num_batches=None, shuffle=True):
+def image_generator(folder_path, ball_path, batch_size, num_batches=None, shuffle=True, params={}):
     """
     Generator that loads images and creates dataset.
 
@@ -64,6 +73,9 @@ def image_generator(folder_path, ball_path, batch_size, num_batches=None, shuffl
     The shape of the arrays is [batch_size, height, width].
 
     It can be used directly with tf.data.Dataset.from_generator()
+
+    params is a dict that can give information. For example to create smaller
+    images, or create a different kind of ground truth.
     """
 
     images_paths = list(folder_path.glob("*.jpg"))
@@ -81,7 +93,7 @@ def image_generator(folder_path, ball_path, batch_size, num_batches=None, shuffl
         for i in range(batch_size):
 
             index = batch * batch_size + i
-            x, y = _to_tensors(_gen_img_pair(images_paths[index], ball_path))
+            x, y = _to_tensors(_gen_img_pair(images_paths[index], ball_path, params))
             x_imgs.append(x)
             y_imgs.append(y)
 

@@ -6,7 +6,6 @@ from datetime import datetime
 import json
 
 import matplotlib.pyplot as plt
-import tensorflow as tf
 
 import gen
 
@@ -38,12 +37,17 @@ class Case:
         self.num_batches = 3
 
         # Number of epochs
-        self.num_epochs = 10
+        self.num_epochs = 100
 
         # Optimizer and loss, use Keras objects and not strings
         self.lr = 1e-3
         self.optimizer = tf.keras.optimizers.Adam(self.lr)
         self.loss = tf.keras.losses.BinaryCrossentropy()
+
+        # Parameters of the data generator. Can only contain serializable things
+        self.gen_params = {
+                "ground_truth_shape": "rect",
+            }
 
         # Model
         self.model = tf.keras.Sequential()
@@ -94,6 +98,7 @@ class Case:
                 "num_epochs": self.num_epochs,
                 "optimizer": str(self.optimizer),
                 "loss": str(self.loss),
+                "gen_params": self.gen_params,
                 "notes": self.notes,
                 "model_summary": summary,
             }
@@ -101,98 +106,153 @@ class Case:
         with open(json_path, "w") as f:
             json.dump(data, f)
 
-def main():
+def train(args):
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--train", "-t",
-            action="store_true",
-            help="Train network",
+    import tensorflow as tf
+
+    case = Case()
+    case_path = CASES_PATH / case.id
+    case_path.mkdir(parents=True)
+
+    checkpoint_path = case_path / "cp.ckpt"
+
+    # Create a callback that saves the model's weights
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_path,
+            save_weights_only=True,
+            verbose=1
         )
-    parser.add_argument("--eval", "-e",
-            type=str,
-            help="Evaluate network",
+
+    train_dataset = tf.data.Dataset.from_generator(
+            lambda: gen.image_generator(
+                VAL2017_FOLDER_PATH,
+                BALL_IMG_PATH,
+                batch_size=case.batch_size,
+                num_batches=case.num_batches,
+                shuffle=True,
+                params=case.gen_params,
+            ),
+            output_signature=(
+                tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
+                tf.TensorSpec(shape=(None, None, None, 1), dtype=tf.float32),
+            )
         )
-    parser.add_argument("--list", "-l",
-            action="store_true",
-            help="List cases",
+
+    val_dataset = tf.data.Dataset.from_generator(
+            lambda: gen.image_generator(
+                VAL2017_FOLDER_PATH,
+                BALL_IMG_PATH,
+                batch_size=case.batch_size,
+                num_batches=case.num_batches,
+                shuffle=False,
+                params=case.gen_params,
+            ),
+            output_signature=(
+                tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
+                tf.TensorSpec(shape=(None, None, None, 1), dtype=tf.float32),
+            )
         )
 
-    args = parser.parse_args()
+    case.model.fit(
+            train_dataset,
+            validation_data=val_dataset,
+            epochs=case.num_epochs,
+            verbose=1,
+            callbacks=[cp_callback],
+        )
 
-    if args.train:
+    case.model.save(case_path)
+    case.save_description(case_path / "case.json")
 
-        case = Case()
-        case_path = CASES_PATH / case.id
-        case_path.mkdir(parents=True)
+def eval_(args):
 
-        checkpoint_path = case_path / "cp.ckpt"
+    import tensorflow as tf
 
-        # Create a callback that saves the model's weights
-        cp_callback = tf.keras.callbacks.ModelCheckpoint(
-                filepath=checkpoint_path,
-                save_weights_only=True,
-                verbose=1
-            )
+    case_id = args.id
 
-        train_dataset = tf.data.Dataset.from_generator(
-                lambda: gen.image_generator(
-                    VAL2017_FOLDER_PATH,
-                    BALL_IMG_PATH,
-                    batch_size=case.batch_size,
-                    num_batches=case.num_batches,
-                    shuffle=True,
-                ),
-                output_signature=(
-                    tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
-                    tf.TensorSpec(shape=(None, None, None, 1), dtype=tf.float32),
-                )
-            )
+    case_path = CASES_PATH / case_id
+    model = tf.keras.models.load_model(case_path)
 
-        val_dataset = tf.data.Dataset.from_generator(
-                lambda: gen.image_generator(
-                    VAL2017_FOLDER_PATH,
-                    BALL_IMG_PATH,
-                    batch_size=case.batch_size,
-                    num_batches=case.num_batches,
-                    shuffle=False,
-                ),
-                output_signature=(
-                    tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
-                    tf.TensorSpec(shape=(None, None, None, 1), dtype=tf.float32),
-                )
-            )
+    with open(case_path / "case.json", "r") as f:
+        case_description = json.load(f)
 
-        case.model.fit(
-                train_dataset,
-                validation_data=val_dataset,
-                epochs=case.num_epochs,
-                verbose=1,
-                callbacks=[cp_callback],
-            )
+    image_gen = gen.image_generator(
+            VAL2017_FOLDER_PATH,
+            BALL_IMG_PATH,
+            batch_size=16,
+            shuffle=True,
+            params=case_description["gen_params"],
+        )
+    x, y = next(image_gen)
+    img = x[0]
+    ground_truth = y[0]
+    y_est = model.predict(x)
 
-        case.model.save(case_path)
-        case.save_description(case_path / "case.json")
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
 
-    if args.eval:
-        case_id = args.eval
+    aximg = ax1.imshow(img)
+    fig.colorbar(aximg, ax=ax1)
+    ax1.set_title("Input")
 
-        case_path = CASES_PATH / case_id
-        model = tf.keras.models.load_model(case_path)
+    aximg = ax2.imshow(ground_truth.squeeze())
+    fig.colorbar(aximg, ax=ax2)
+    ax2.set_title("Ground truth")
 
-        image_gen = gen.image_generator(VAL2017_FOLDER_PATH, BALL_IMG_PATH, batch_size=16, shuffle=False)
-        x, y = next(image_gen)
-        img = x[0]
-        y_est = model.predict(x)
-        plt.imshow(y_est[0].squeeze())
-        plt.show()
+    aximg = ax3.imshow(y_est[0].squeeze())
+    fig.colorbar(aximg, ax=ax3)
+    ax3.set_title("Output")
 
-    if args.list:
-        for case_path in sorted(CASES_PATH.iterdir()):
-            print(case_path.name)
-            with open(case_path / "case.json", "r") as f:
-                data = json.load(f)
+    aximg = ax4.imshow(y_est[0].squeeze()[1:-1, 1:-1])
+    fig.colorbar(aximg, ax=ax4)
+    ax4.set_title("Output cropped")
 
-                print(data["model_summary"])
+    plt.show()
+
+def list_(args):
+
+    for case_path in sorted(CASES_PATH.iterdir()):
+        with open(case_path / "case.json", "r") as f:
+            data = json.load(f)
+
+            if args.filter:
+                if not str(data[args.filter[0]]) == args.filter[1]:
+                    continue
+
+            if args.verbose:
+                print("------------------------")
+                for key, value in data.items():
+                    print(key, ":", value)
+
+            else:
+                print(data["id"])
 
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser()
+    subparsers = parser.add_subparsers()
+
+    parser_train = subparsers.add_parser("train", help="Train case")
+    parser_train.set_defaults(func=train)
+
+    parser_eval = subparsers.add_parser("eval", help="Evaluate case")
+    parser_eval.add_argument("id",
+            type=str,
+            help="ID of case to evaluate",
+        )
+    parser_eval.set_defaults(func=eval_)
+
+    parser_eval = subparsers.add_parser("list", help="List cases")
+    parser_eval.add_argument("--verbose", "-v",
+            action="store_true",
+            help="Show all information about case",
+        )
+    parser_eval.add_argument("--filter", "-f",
+            type=str,
+            nargs=2,
+            help="Filter field of case description",
+        )
+    parser_eval.set_defaults(func=list_)
+
+    args = parser.parse_args()
+    # Call function corresponding to the selected subparser
+    args.func(args)
