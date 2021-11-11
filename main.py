@@ -3,6 +3,7 @@
 from pathlib import Path
 import argparse
 from datetime import datetime
+import json
 
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -17,61 +18,88 @@ DATA_VERSION = "v1"
 
 CASES_PATH = Path(f"./cases/{DATA_VERSION}/")
 
-def define_case():
-    """
-    Define and compile the model and all hyperparameters for one case
-    """
 
-    # Dictionary with model and hyperparameters
-    case = {
-        # Samples per batch
-        "batch_size": 16,
+class Case:
 
-        # Number of batches per epoch
-        "num_batches": 3,
+    def __init__(self):
+        """
+        Represents a training trial.
 
-        # Number of epochs
-        "num_epochs": 10,
-
-        # Optimizer and loss
-        "optimizer": tf.keras.optimizers.Adam(1e-3),
-        "loss": 'binary_crossentropy',
-
-        # Model
-        "model": tf.keras.Sequential(),
-
-        # Notes
-        "notes": "",
+        Contains a model, all hyperparameters, a description, etc.
+        """
 
         # ID of case
-        "id": datetime.now().isoformat(timespec="seconds"),
-    }
+        self.id = datetime.now().isoformat(timespec="seconds")
 
-    case["model"].add(tf.keras.layers.Conv2D(
-            32, (3, 3),
-            activation='relu', padding='same',
-            #, input_shape=(32, 32, 3)))
-        ))
-    case["model"].add(tf.keras.layers.MaxPooling2D((2, 2)))
-    case["model"].add(tf.keras.layers.Conv2D(
-            64, (3, 3),
-            activation='relu', padding='same',
-        ))
-    case["model"].add(tf.keras.layers.MaxPooling2D((2, 2)))
-    # case["model"].add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu'))
-    # case["model"].add(tf.keras.layers.MaxPooling2D((2, 2)))
-    case["model"].add(tf.keras.layers.Conv2DTranspose(
-            16, (3, 3), strides=2,
-            activation='sigmoid', padding='same',
-        ))
-    case["model"].add(tf.keras.layers.Conv2DTranspose(
-            1, (3, 3), strides=2,
-            activation='sigmoid', padding='same',
-        ))
+        # Samples per batch
+        self.batch_size = 16
 
-    case["model"].compile(optimizer=case["optimizer"], loss=case["loss"])
+        # Number of batches per epoch
+        self.num_batches = 3
 
-    return case
+        # Number of epochs
+        self.num_epochs = 10
+
+        # Optimizer and loss, use Keras objects and not strings
+        self.lr = 1e-3
+        self.optimizer = tf.keras.optimizers.Adam(self.lr)
+        self.loss = tf.keras.losses.BinaryCrossentropy()
+
+        # Model
+        self.model = tf.keras.Sequential()
+
+        # Notes
+        self.notes = ""
+
+        # Define model
+
+        self.model.add(tf.keras.layers.Conv2D(
+                32, (3, 3),
+                activation='relu', padding='same',
+                #, input_shape=(32, 32, 3)))
+            ))
+        self.model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+        self.model.add(tf.keras.layers.Conv2D(
+                64, (3, 3),
+                activation='relu', padding='same',
+            ))
+        self.model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+        # self.model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu'))
+        # self.model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+        self.model.add(tf.keras.layers.Conv2DTranspose(
+                16, (3, 3), strides=2,
+                activation='sigmoid', padding='same',
+            ))
+        self.model.add(tf.keras.layers.Conv2DTranspose(
+                1, (3, 3), strides=2,
+                activation='sigmoid', padding='same',
+            ))
+
+        self.model.compile(optimizer=self.optimizer, loss=self.loss)
+
+    def save_description(self, json_path):
+        """
+        Saves a JSON with a description of the case.
+        """
+
+        summary = []
+        self.model.summary(print_fn=lambda x: summary.append(x))
+        summary = "\n".join(summary)
+
+        data = {
+                "id": self.id,
+                "batch_size": self.batch_size,
+                "num_batches": self.num_batches,
+                "lr": self.lr,
+                "num_epochs": self.num_epochs,
+                "optimizer": str(self.optimizer),
+                "loss": str(self.loss),
+                "notes": self.notes,
+                "model_summary": summary,
+            }
+
+        with open(json_path, "w") as f:
+            json.dump(data, f)
 
 def main():
 
@@ -84,13 +112,17 @@ def main():
             type=str,
             help="Evaluate network",
         )
+    parser.add_argument("--list", "-l",
+            action="store_true",
+            help="List cases",
+        )
 
     args = parser.parse_args()
 
     if args.train:
 
-        case = define_case()
-        case_path = CASES_PATH / case["id"]
+        case = Case()
+        case_path = CASES_PATH / case.id
         case_path.mkdir(parents=True)
 
         checkpoint_path = case_path / "cp.ckpt"
@@ -106,8 +138,8 @@ def main():
                 lambda: gen.image_generator(
                     VAL2017_FOLDER_PATH,
                     BALL_IMG_PATH,
-                    batch_size=case["batch_size"],
-                    num_batches=case["num_batches"],
+                    batch_size=case.batch_size,
+                    num_batches=case.num_batches,
                     shuffle=True,
                 ),
                 output_signature=(
@@ -120,8 +152,8 @@ def main():
                 lambda: gen.image_generator(
                     VAL2017_FOLDER_PATH,
                     BALL_IMG_PATH,
-                    batch_size=case["batch_size"],
-                    num_batches=case["num_batches"],
+                    batch_size=case.batch_size,
+                    num_batches=case.num_batches,
                     shuffle=False,
                 ),
                 output_signature=(
@@ -130,15 +162,16 @@ def main():
                 )
             )
 
-        case["model"].fit(
+        case.model.fit(
                 train_dataset,
                 validation_data=val_dataset,
-                epochs=case["num_epochs"],
+                epochs=case.num_epochs,
                 verbose=1,
                 callbacks=[cp_callback],
             )
 
-        case["model"].save(case_path)
+        case.model.save(case_path)
+        case.save_description(case_path / "case.json")
 
     if args.eval:
         case_id = args.eval
@@ -152,6 +185,14 @@ def main():
         y_est = model.predict(x)
         plt.imshow(y_est[0].squeeze())
         plt.show()
+
+    if args.list:
+        for case_path in sorted(CASES_PATH.iterdir()):
+            print(case_path.name)
+            with open(case_path / "case.json", "r") as f:
+                data = json.load(f)
+
+                print(data["model_summary"])
 
 if __name__ == "__main__":
     main()
