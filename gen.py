@@ -85,6 +85,4 @@ def image_generator(folder_path, ball_path, batch_size, num_batches=None, shuffl
             x_imgs.append(x)
             y_imgs.append(y)
 
-        print(np.array(x_imgs).shape)
-
         yield np.array(x_imgs), np.array(y_imgs)
