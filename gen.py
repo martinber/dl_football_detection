@@ -57,12 +57,10 @@ def _to_tensors(imgs):
 
     x_img, y_img = imgs
     return (
-        tf.convert_to_tensor(_preprocess_img(
+        _preprocess_img(
             tf.keras.preprocessing.image.img_to_array(x_img)
-        )),
-        tf.convert_to_tensor(
-            tf.keras.preprocessing.image.img_to_array(y_img)
         ),
+        tf.keras.preprocessing.image.img_to_array(y_img)
     )
 
 def image_generator(folder_path, ball_path, batch_size, num_batches=None, shuffle=True, params={}):

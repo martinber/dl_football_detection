@@ -12,9 +12,10 @@ import gen
 BALL_IMG_PATH = Path("./res/ball.jpg")
 VAL2017_FOLDER_PATH = Path("/home/mbernardi/extra/async/ipcv/sem_3/deep_learning/labs/5/val2017")
 
-# Version of the format where I save the models, outputs, etc
+# Version of the format where I save the models, cases, etc. If in the future
+# I change the format I can just change the string, so a new folder will be made
+# and old things will be left ignored in old folder
 DATA_VERSION = "v1"
-
 CASES_PATH = Path(f"./cases/{DATA_VERSION}/")
 
 
@@ -26,6 +27,8 @@ class Case:
 
         Contains a model, all hyperparameters, a description, etc.
         """
+
+        import tensorflow as tf
 
         # ID of case
         self.id = datetime.now().isoformat(timespec="seconds")
@@ -59,12 +62,14 @@ class Case:
 
         self.model.add(tf.keras.layers.Conv2D(
                 32, (3, 3),
+                # dilation_rate=4,
                 activation='relu', padding='same',
                 #, input_shape=(32, 32, 3)))
             ))
         self.model.add(tf.keras.layers.MaxPooling2D((2, 2)))
         self.model.add(tf.keras.layers.Conv2D(
                 64, (3, 3),
+                # dilation_rate=4,
                 activation='relu', padding='same',
             ))
         self.model.add(tf.keras.layers.MaxPooling2D((2, 2)))
@@ -72,10 +77,12 @@ class Case:
         # self.model.add(tf.keras.layers.MaxPooling2D((2, 2)))
         self.model.add(tf.keras.layers.Conv2DTranspose(
                 16, (3, 3), strides=2,
+                # dilation_rate=4,
                 activation='sigmoid', padding='same',
             ))
         self.model.add(tf.keras.layers.Conv2DTranspose(
                 1, (3, 3), strides=2,
+                # dilation_rate=4,
                 activation='sigmoid', padding='same',
             ))
 
@@ -211,8 +218,14 @@ def eval_(args):
 def list_(args):
 
     for case_path in sorted(CASES_PATH.iterdir()):
+
+        if not (case_path / "saved_model.pb").is_file():
+            # Training didn't finish in this case
+            continue
+
         with open(case_path / "case.json", "r") as f:
             data = json.load(f)
+
 
             if args.filter:
                 if not str(data[args.filter[0]]) == args.filter[1]:
@@ -231,17 +244,30 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
 
-    parser_train = subparsers.add_parser("train", help="Train case")
+    parser_train = subparsers.add_parser(
+            "train",
+            help=("Train case. It will create the model defined in the source "
+                  "code, train it, and save everything in the \"cases\" folder: "
+                  "the model, a json description, etc.")
+        )
     parser_train.set_defaults(func=train)
 
-    parser_eval = subparsers.add_parser("eval", help="Evaluate case")
+    parser_eval = subparsers.add_parser(
+            "eval",
+            help=("Evaluate case. It will load the given model, evaluate it, "
+                  "show plots, etc.")
+        )
     parser_eval.add_argument("id",
             type=str,
             help="ID of case to evaluate",
         )
     parser_eval.set_defaults(func=eval_)
 
-    parser_eval = subparsers.add_parser("list", help="List cases")
+    parser_eval = subparsers.add_parser(
+            "list",
+            help=("List cases. It searchs all the saved cases/models and lists "
+                  "them. Allows to filter results and select information to "
+                  "show."))
     parser_eval.add_argument("--verbose", "-v",
             action="store_true",
             help="Show all information about case",
