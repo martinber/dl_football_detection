@@ -15,7 +15,7 @@ VAL2017_FOLDER_PATH = Path("/home/mbernardi/extra/async/ipcv/sem_3/deep_learning
 # Version of the format where I save the models, cases, etc. If in the future
 # I change the format I can just change the string, so a new folder will be made
 # and old things will be left ignored in old folder
-DATA_VERSION = "v1"
+DATA_VERSION = "v2"
 CASES_PATH = Path(f"./cases/{DATA_VERSION}/")
 
 
@@ -49,7 +49,18 @@ class Case:
 
         # Parameters of the data generator. Can only contain serializable things
         self.gen_params = {
+                # Shape of object in ground truth, "rect" or "ellipse"
                 "ground_truth_shape": "rect",
+
+                # Needed divisibility of the width and height of images. Depends
+                # in amount of downsampling
+                "divisibility": 4,
+
+                # Size of images, make divisible by previous parameter or
+                # otherwise padding will be added.
+                # Used in training dataset but also in validation dataset during
+                # training, but not during evaluation.
+                "train_val_img_size": (100, 100),
             }
 
         # Model
@@ -62,27 +73,49 @@ class Case:
 
         self.model.add(tf.keras.layers.Conv2D(
                 32, (3, 3),
-                # dilation_rate=4,
+                # dilation_rate=2,
                 activation='relu', padding='same',
-                #, input_shape=(32, 32, 3)))
             ))
-        self.model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+        self.model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
         self.model.add(tf.keras.layers.Conv2D(
                 64, (3, 3),
-                # dilation_rate=4,
+                # dilation_rate=2,
                 activation='relu', padding='same',
             ))
-        self.model.add(tf.keras.layers.MaxPooling2D((2, 2)))
-        # self.model.add(tf.keras.layers.Conv2D(64, (3, 3), activation='relu'))
-        # self.model.add(tf.keras.layers.MaxPooling2D((2, 2)))
+        self.model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+        # self.model.add(tf.keras.layers.Conv2D(
+        #         64, (3, 3),
+        #         # dilation_rate=2,
+        #         activation='relu', padding='same',
+        #     ))
+        # self.model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+        # self.model.add(tf.keras.layers.Conv2D(
+        #         64, (3, 3),
+        #         # dilation_rate=2,
+        #         activation='relu', padding='same',
+        #     ))
+        # self.model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+
+
+
+        # self.model.add(tf.keras.layers.Conv2DTranspose(
+        #         16, (3, 3), strides=2,
+        #         # dilation_rate=2,
+        #         activation='sigmoid', padding='same',
+        #     ))
+        # self.model.add(tf.keras.layers.Conv2DTranspose(
+        #         16, (3, 3), strides=2,
+        #         # dilation_rate=2,
+        #         activation='sigmoid', padding='same',
+        #     ))
         self.model.add(tf.keras.layers.Conv2DTranspose(
                 16, (3, 3), strides=2,
-                # dilation_rate=4,
+                # dilation_rate=2,
                 activation='sigmoid', padding='same',
             ))
         self.model.add(tf.keras.layers.Conv2DTranspose(
                 1, (3, 3), strides=2,
-                # dilation_rate=4,
+                # dilation_rate=2,
                 activation='sigmoid', padding='same',
             ))
 
@@ -138,6 +171,7 @@ def train(args):
                 num_batches=case.num_batches,
                 shuffle=True,
                 params=case.gen_params,
+                evaluation=False,
             ),
             output_signature=(
                 tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
@@ -153,6 +187,7 @@ def train(args):
                 num_batches=case.num_batches,
                 shuffle=False,
                 params=case.gen_params,
+                evaluation=False,
             ),
             output_signature=(
                 tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
@@ -186,9 +221,10 @@ def eval_(args):
     image_gen = gen.image_generator(
             VAL2017_FOLDER_PATH,
             BALL_IMG_PATH,
-            batch_size=16,
+            batch_size=1,
             shuffle=True,
             params=case_description["gen_params"],
+            evaluation=True,
         )
     x, y = next(image_gen)
     img = x[0]
@@ -198,7 +234,7 @@ def eval_(args):
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
 
     aximg = ax1.imshow(img)
-    fig.colorbar(aximg, ax=ax1)
+    # fig.colorbar(aximg, ax=ax1)
     ax1.set_title("Input")
 
     aximg = ax2.imshow(ground_truth.squeeze())
@@ -209,9 +245,9 @@ def eval_(args):
     fig.colorbar(aximg, ax=ax3)
     ax3.set_title("Output")
 
-    aximg = ax4.imshow(y_est[0].squeeze()[1:-1, 1:-1])
-    fig.colorbar(aximg, ax=ax4)
-    ax4.set_title("Output cropped")
+    # aximg = ax4.imshow(y_est[0].squeeze()[1:-1, 1:-1])
+    # fig.colorbar(aximg, ax=ax4)
+    # ax4.set_title("Output cropped")
 
     plt.show()
 
