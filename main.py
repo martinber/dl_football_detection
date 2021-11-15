@@ -15,7 +15,7 @@ VAL2017_FOLDER_PATH = Path("/home/mbernardi/extra/async/ipcv/sem_3/deep_learning
 # Version of the format where I save the models, cases, etc. If in the future
 # I change the format I can just change the string, so a new folder will be made
 # and old things will be left ignored in old folder
-DATA_VERSION = "v2"
+DATA_VERSION = "v3"
 CASES_PATH = Path(f"./cases/{DATA_VERSION}/")
 
 
@@ -126,6 +126,10 @@ class Case:
         Saves a JSON with a description of the case.
         """
 
+        # Dictionaries with configuration of layers
+        layers_config = [l.get_config() for l in self.model.layers]
+
+        # Save summary as string
         summary = []
         self.model.summary(print_fn=lambda x: summary.append(x))
         summary = "\n".join(summary)
@@ -140,6 +144,7 @@ class Case:
                 "loss": str(self.loss),
                 "gen_params": self.gen_params,
                 "notes": self.notes,
+                "layers_config": layers_config,
                 "model_summary": summary,
             }
 
@@ -259,6 +264,10 @@ def list_(args):
             # Training didn't finish in this case
             continue
 
+        if not (case_path / "case.json").is_file():
+            # Training didn't finish in this case
+            continue
+
         with open(case_path / "case.json", "r") as f:
             data = json.load(f)
 
@@ -270,7 +279,12 @@ def list_(args):
             if args.verbose:
                 print("------------------------")
                 for key, value in data.items():
-                    print(key, ":", value)
+
+                    if key == "layers_config":
+                        for layer in value:
+                            print(layer)
+                    else:
+                        print(key, ":", value)
 
             else:
                 print(data["id"])
