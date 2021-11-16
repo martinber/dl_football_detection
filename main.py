@@ -2,12 +2,8 @@
 
 from pathlib import Path
 import argparse
-from datetime import datetime
-import json
 
-import matplotlib.pyplot as plt
-
-import gen
+import listing
 
 BALL_IMG_PATH = Path("./res/ball.jpg")
 VAL2017_FOLDER_PATH = Path("/home/mbernardi/extra/async/ipcv/sem_3/deep_learning/labs/5/val2017")
@@ -18,281 +14,16 @@ VAL2017_FOLDER_PATH = Path("/home/mbernardi/extra/async/ipcv/sem_3/deep_learning
 DATA_VERSION = "v3"
 CASES_PATH = Path(f"./cases/{DATA_VERSION}/")
 
-
-class Case:
-
-    def __init__(self):
-        """
-        Represents a training trial.
-
-        Contains a model, all hyperparameters, a description, etc.
-        """
-
-        import tensorflow as tf
-
-        # ID of case
-        self.id = datetime.now().isoformat(timespec="seconds")
-
-        # Samples per batch
-        self.batch_size = 16
-
-        # Number of batches per epoch
-        self.num_batches = 3
-
-        # Number of epochs
-        self.num_epochs = 100
-
-        # Optimizer and loss, use Keras objects and not strings
-        self.lr = 1e-3
-        self.optimizer = tf.keras.optimizers.Adam(self.lr)
-        self.loss = tf.keras.losses.BinaryCrossentropy()
-
-        # Parameters of the data generator. Can only contain serializable things
-        self.gen_params = {
-                # Shape of object in ground truth, "rect" or "ellipse"
-                "ground_truth_shape": "rect",
-
-                # Needed divisibility of the width and height of images. Depends
-                # in amount of downsampling
-                "divisibility": 4,
-
-                # Size of images, make divisible by previous parameter or
-                # otherwise padding will be added.
-                # Used in training dataset but also in validation dataset during
-                # training, but not during evaluation.
-                "train_val_img_size": (100, 100),
-            }
-
-        # Model
-        self.model = tf.keras.Sequential()
-
-        # Notes
-        self.notes = ""
-
-        # Define model
-
-        self.model.add(tf.keras.layers.Conv2D(
-                32, (3, 3),
-                # dilation_rate=2,
-                activation='relu', padding='same',
-            ))
-        self.model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
-        self.model.add(tf.keras.layers.Conv2D(
-                64, (3, 3),
-                # dilation_rate=2,
-                activation='relu', padding='same',
-            ))
-        self.model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
-        # self.model.add(tf.keras.layers.Conv2D(
-        #         64, (3, 3),
-        #         # dilation_rate=2,
-        #         activation='relu', padding='same',
-        #     ))
-        # self.model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
-        # self.model.add(tf.keras.layers.Conv2D(
-        #         64, (3, 3),
-        #         # dilation_rate=2,
-        #         activation='relu', padding='same',
-        #     ))
-        # self.model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
-
-
-
-        # self.model.add(tf.keras.layers.Conv2DTranspose(
-        #         16, (3, 3), strides=2,
-        #         # dilation_rate=2,
-        #         activation='sigmoid', padding='same',
-        #     ))
-        # self.model.add(tf.keras.layers.Conv2DTranspose(
-        #         16, (3, 3), strides=2,
-        #         # dilation_rate=2,
-        #         activation='sigmoid', padding='same',
-        #     ))
-        self.model.add(tf.keras.layers.Conv2DTranspose(
-                16, (3, 3), strides=2,
-                # dilation_rate=2,
-                activation='sigmoid', padding='same',
-            ))
-        self.model.add(tf.keras.layers.Conv2DTranspose(
-                1, (3, 3), strides=2,
-                # dilation_rate=2,
-                activation='sigmoid', padding='same',
-            ))
-
-        self.model.compile(optimizer=self.optimizer, loss=self.loss)
-
-    def save_description(self, json_path):
-        """
-        Saves a JSON with a description of the case.
-        """
-
-        # Dictionaries with configuration of layers
-        layers_config = [l.get_config() for l in self.model.layers]
-
-        # Save summary as string
-        summary = []
-        self.model.summary(print_fn=lambda x: summary.append(x))
-        summary = "\n".join(summary)
-
-        data = {
-                "id": self.id,
-                "batch_size": self.batch_size,
-                "num_batches": self.num_batches,
-                "lr": self.lr,
-                "num_epochs": self.num_epochs,
-                "optimizer": str(self.optimizer),
-                "loss": str(self.loss),
-                "gen_params": self.gen_params,
-                "notes": self.notes,
-                "layers_config": layers_config,
-                "model_summary": summary,
-            }
-
-        with open(json_path, "w") as f:
-            json.dump(data, f)
-
-def train(args):
-
-    import tensorflow as tf
-
-    case = Case()
-    case_path = CASES_PATH / case.id
-    case_path.mkdir(parents=True)
-
-    checkpoint_path = case_path / "cp.ckpt"
-
-    # Create a callback that saves the model's weights
-    cp_callback = tf.keras.callbacks.ModelCheckpoint(
-            filepath=checkpoint_path,
-            save_weights_only=True,
-            verbose=1
-        )
-
-    train_dataset = tf.data.Dataset.from_generator(
-            lambda: gen.image_generator(
-                VAL2017_FOLDER_PATH,
-                BALL_IMG_PATH,
-                batch_size=case.batch_size,
-                num_batches=case.num_batches,
-                shuffle=True,
-                params=case.gen_params,
-                evaluation=False,
-            ),
-            output_signature=(
-                tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
-                tf.TensorSpec(shape=(None, None, None, 1), dtype=tf.float32),
-            )
-        )
-
-    val_dataset = tf.data.Dataset.from_generator(
-            lambda: gen.image_generator(
-                VAL2017_FOLDER_PATH,
-                BALL_IMG_PATH,
-                batch_size=case.batch_size,
-                num_batches=case.num_batches,
-                shuffle=False,
-                params=case.gen_params,
-                evaluation=False,
-            ),
-            output_signature=(
-                tf.TensorSpec(shape=(None, None, None, 3), dtype=tf.float32),
-                tf.TensorSpec(shape=(None, None, None, 1), dtype=tf.float32),
-            )
-        )
-
-    case.model.fit(
-            train_dataset,
-            validation_data=val_dataset,
-            epochs=case.num_epochs,
-            verbose=1,
-            callbacks=[cp_callback],
-        )
-
-    case.model.save(case_path)
-    case.save_description(case_path / "case.json")
-
-def eval_(args):
-
-    import tensorflow as tf
-
-    case_id = args.id
-
-    case_path = CASES_PATH / case_id
-    model = tf.keras.models.load_model(case_path)
-
-    with open(case_path / "case.json", "r") as f:
-        case_description = json.load(f)
-
-    image_gen = gen.image_generator(
-            VAL2017_FOLDER_PATH,
-            BALL_IMG_PATH,
-            batch_size=1,
-            shuffle=True,
-            params=case_description["gen_params"],
-            evaluation=True,
-        )
-    x, y = next(image_gen)
-    img = x[0]
-    ground_truth = y[0]
-    y_est = model.predict(x)
-
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
-
-    aximg = ax1.imshow(img)
-    # fig.colorbar(aximg, ax=ax1)
-    ax1.set_title("Input")
-
-    aximg = ax2.imshow(ground_truth.squeeze())
-    fig.colorbar(aximg, ax=ax2)
-    ax2.set_title("Ground truth")
-
-    aximg = ax3.imshow(y_est[0].squeeze())
-    fig.colorbar(aximg, ax=ax3)
-    ax3.set_title("Output")
-
-    # aximg = ax4.imshow(y_est[0].squeeze()[1:-1, 1:-1])
-    # fig.colorbar(aximg, ax=ax4)
-    # ax4.set_title("Output cropped")
-
-    plt.show()
-
-def list_(args):
-
-    for case_path in sorted(CASES_PATH.iterdir()):
-
-        if not (case_path / "saved_model.pb").is_file():
-            # Training didn't finish in this case
-            continue
-
-        if not (case_path / "case.json").is_file():
-            # Training didn't finish in this case
-            continue
-
-        with open(case_path / "case.json", "r") as f:
-            data = json.load(f)
-
-
-            if args.filter:
-                if not str(data[args.filter[0]]) == args.filter[1]:
-                    continue
-
-            if args.verbose:
-                print("------------------------")
-                for key, value in data.items():
-
-                    if key == "layers_config":
-                        for layer in value:
-                            print(layer)
-                    else:
-                        print(key, ":", value)
-
-            else:
-                print(data["id"])
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers()
+
+    def train(args):
+        # Import now because loads tensorflow and I dont want to be done in
+        # other cases because it is slow
+        import train
+        train.train()
 
     parser_train = subparsers.add_parser(
             "train",
@@ -301,6 +32,12 @@ if __name__ == "__main__":
                   "the model, a json description, etc.")
         )
     parser_train.set_defaults(func=train)
+
+    def eval_(args):
+        # Import now because loads tensorflow and I dont want to be done in
+        # other cases because it is slow
+        import evaluate
+        evaluate.evaluate(args.id)
 
     parser_eval = subparsers.add_parser(
             "eval",
@@ -312,6 +49,9 @@ if __name__ == "__main__":
             help="ID of case to evaluate",
         )
     parser_eval.set_defaults(func=eval_)
+
+    def list_(args):
+        listing.listing(CASES_PATH, args.filter, args.verbose)
 
     parser_eval = subparsers.add_parser(
             "list",
