@@ -46,6 +46,17 @@ because the idea was to have these features:
 
     - Several simple image processing operations can be done.
 
+## Usage
+
+Read `./main.py -h` for more.
+
+- `./main.py train`: Trains models and saves them automatically. Before running,
+  define the models to train in the file `train.py`.
+
+- `./main.py list`: List all the trained models. Use `-v` for more info.
+
+- `./main.py eval {model_id}`: Evaluate trained model.
+
 ## Links
 
 - https://github.com/tensorflow/models/blob/master/research/object_detection/README.md
@@ -53,3 +64,4 @@ because the idea was to have these features:
 - COCO 2017 Val images 5K/1GB: https://cocodataset.org/#download
 - https://learnopencv.com/cnn-fully-convolutional-image-classification-with-tensorflow/
 - https://medium.com/mindboard/image-classification-with-variable-input-resolution-in-keras-cbfbe576126f
+- https://stackoverflow.com/questions/55929401/how-to-specify-model-compile-for-binary-crossentropy-activation-sigmoid-and-act

@@ -15,7 +15,7 @@ CASES_PATH = Path(f"./cases/{DATA_VERSION}/")
 
 class Case:
 
-    def __init__(self, model, batch_size, num_batches, num_epochs, lr,
+    def __init__(self, model, batch_size, num_batches, num_epochs,
             optimizer, loss, gen_params, notes):
         """
         Represents a training trial.
@@ -36,9 +36,8 @@ class Case:
         self.num_epochs = num_epochs
 
         # Optimizer and loss, use Keras objects and not strings
-        self.lr = lr
-        self.optimizer = optimizer(lr=self.lr)
-        self.loss = loss()
+        self.optimizer = optimizer
+        self.loss = loss
 
         # Parameters of the data generator. Can only contain serializable things
         self.gen_params = gen_params
@@ -68,10 +67,9 @@ class Case:
                 "id": self.id,
                 "batch_size": self.batch_size,
                 "num_batches": self.num_batches,
-                "lr": self.lr,
                 "num_epochs": self.num_epochs,
-                "optimizer": str(self.optimizer),
-                "loss": str(self.loss),
+                "optimizer": str(self.optimizer.get_config()),
+                "loss": str(self.loss.get_config()),
                 "gen_params": self.gen_params,
                 "notes": self.notes,
                 "layers_config": layers_config,
@@ -147,7 +145,7 @@ def train():
     model = tf.keras.Sequential()
 
     model.add(tf.keras.layers.Conv2D(
-            32, (3, 3),
+            64, (3, 3),
             # dilation_rate=2,
             activation='relu', padding='same',
         ))
@@ -197,9 +195,8 @@ def train():
             batch_size=16,
             num_batches=3,
             num_epochs=100,
-            lr=1e-3,
-            optimizer=tf.keras.optimizers.Adam,
-            loss=tf.keras.losses.BinaryCrossentropy,
+            optimizer=tf.keras.optimizers.Adam(lr=1e-3),
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
             gen_params={
                 # Shape of object in ground truth, "rect" or "ellipse"
                 "ground_truth_shape": "rect",
@@ -219,3 +216,181 @@ def train():
 
     train_case(case)
 
+    case = Case(
+            model=model,
+            batch_size=16,
+            num_batches=10,
+            num_epochs=100,
+            optimizer=tf.keras.optimizers.Adam(lr=1e-3),
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
+            gen_params={
+                # Shape of object in ground truth, "rect" or "ellipse"
+                "ground_truth_shape": "rect",
+
+                # Needed divisibility of the width and height of images. Depends
+                # in amount of downsampling
+                "divisibility": 4,
+
+                # Size of images, make divisible by previous parameter or
+                # otherwise padding will be added.
+                # Used in training dataset but also in validation dataset during
+                # training, but not during evaluation.
+                "train_val_img_size": (100, 100),
+            },
+            notes="",
+        )
+
+    train_case(case)
+
+    case = Case(
+            model=model,
+            batch_size=16,
+            num_batches=3,
+            num_epochs=100,
+            optimizer=tf.keras.optimizers.Adam(lr=1e-3),
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
+            gen_params={
+                # Shape of object in ground truth, "rect" or "ellipse"
+                "ground_truth_shape": "rect",
+
+                # Needed divisibility of the width and height of images. Depends
+                # in amount of downsampling
+                "divisibility": 4,
+
+                # Size of images, make divisible by previous parameter or
+                # otherwise padding will be added.
+                # Used in training dataset but also in validation dataset during
+                # training, but not during evaluation.
+                "train_val_img_size": (68, 68),
+            },
+            notes="",
+        )
+
+    train_case(case)
+
+    case = Case(
+            model=model,
+            batch_size=16,
+            num_batches=10,
+            num_epochs=100,
+            optimizer=tf.keras.optimizers.Adam(lr=1e-3),
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
+            gen_params={
+                # Shape of object in ground truth, "rect" or "ellipse"
+                "ground_truth_shape": "rect",
+
+                # Needed divisibility of the width and height of images. Depends
+                # in amount of downsampling
+                "divisibility": 4,
+
+                # Size of images, make divisible by previous parameter or
+                # otherwise padding will be added.
+                # Used in training dataset but also in validation dataset during
+                # training, but not during evaluation.
+                "train_val_img_size": (68, 68),
+            },
+            notes="",
+        )
+
+    train_case(case)
+
+    # Define model
+    model = tf.keras.Sequential()
+
+    model.add(tf.keras.layers.Conv2D(
+            64, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+    model.add(tf.keras.layers.Conv2D(
+            64, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+    model.add(tf.keras.layers.Conv2D(
+            64, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+    model.add(tf.keras.layers.Conv2D(
+            64, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+
+    model.add(tf.keras.layers.Conv2DTranspose(
+            16, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+    model.add(tf.keras.layers.Conv2DTranspose(
+            16, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+    model.add(tf.keras.layers.Conv2DTranspose(
+            16, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+    model.add(tf.keras.layers.Conv2DTranspose(
+            1, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+
+    case = Case(
+            model=model,
+            batch_size=16,
+            num_batches=10,
+            num_epochs=100,
+            optimizer=tf.keras.optimizers.Adam(lr=1e-3),
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
+            gen_params={
+                # Shape of object in ground truth, "rect" or "ellipse"
+                "ground_truth_shape": "rect",
+
+                # Needed divisibility of the width and height of images. Depends
+                # in amount of downsampling
+                "divisibility": 16,
+
+                # Size of images, make divisible by previous parameter or
+                # otherwise padding will be added.
+                # Used in training dataset but also in validation dataset during
+                # training, but not during evaluation.
+                "train_val_img_size": (64, 64),
+            },
+            notes="",
+        )
+
+    train_case(case)
+
+    case = Case(
+            model=model,
+            batch_size=16,
+            num_batches=3,
+            num_epochs=100,
+            optimizer=tf.keras.optimizers.Adam(lr=1e-3),
+            loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
+            gen_params={
+                # Shape of object in ground truth, "rect" or "ellipse"
+                "ground_truth_shape": "rect",
+
+                # Needed divisibility of the width and height of images. Depends
+                # in amount of downsampling
+                "divisibility": 16,
+
+                # Size of images, make divisible by previous parameter or
+                # otherwise padding will be added.
+                # Used in training dataset but also in validation dataset during
+                # training, but not during evaluation.
+                "train_val_img_size": (64, 64),
+            },
+            notes="",
+        )
+
+    train_case(case)
