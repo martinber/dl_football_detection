@@ -11,7 +11,7 @@ VAL2017_FOLDER_PATH = Path("/home/mbernardi/extra/async/ipcv/sem_3/deep_learning
 # Version of the format where I save the models, cases, etc. If in the future
 # I change the format I can just change the string, so a new folder will be made
 # and old things will be left ignored in old folder
-DATA_VERSION = "v3"
+DATA_VERSION = "v4"
 CASES_PATH = Path(f"./cases/{DATA_VERSION}/")
 
 if __name__ == "__main__":
