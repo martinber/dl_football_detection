@@ -34,7 +34,11 @@ if __name__ == "__main__":
         # Import now because loads tensorflow and I dont want to be done in
         # other cases because it is slow
         import evaluate
-        evaluate.evaluate(args.id, CASES_PATH, args.plot_history, args.examples)
+        evaluate.evaluate(
+                args.id, CASES_PATH,
+                args.plot_history, args.history_ignore,
+                args.examples
+            )
 
     parser_eval = subparsers.add_parser(
             "eval",
@@ -48,6 +52,12 @@ if __name__ == "__main__":
     parser_eval.add_argument("--plot-history", "-p",
             action="store_true",
             help="Plot history",
+        )
+    parser_eval.add_argument("--history-ignore", "-i",
+            nargs="+",
+            type=str,
+            default=[],
+            help="Metrics to ignore when showing history",
         )
     parser_eval.add_argument("--examples", "-e",
             action="store_true",

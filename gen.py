@@ -23,7 +23,8 @@ def _paste_ball_in_bg(bg_img, ball_img, params):
     x = random.randint(0, bg_w - w)
     y = random.randint(0, bg_h - h)
 
-    bg_img.paste(ball_img.resize((w, h)), (x, y))
+    ball_img_resized = ball_img.resize((w, h))
+    bg_img.paste(ball_img_resized, (x, y), mask=ball_img_resized)
 
     truth_img = Image.new(mode="1", size=(bg_w, bg_h), color=0)
     truth_draw = ImageDraw.Draw(truth_img)
@@ -43,7 +44,7 @@ def _gen_img_pair(bg_path, ball_path, params, evaluation):
 
     with Image.open(ball_path) as ball_img:
         with Image.open(bg_path) as bg_img:
-            ball_img = ball_img.convert("RGB")
+            ball_img = ball_img.convert("RGBA")
             bg_img = bg_img.convert("RGB")
 
             if not evaluation and "train_val_img_size" in params:

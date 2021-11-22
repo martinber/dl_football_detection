@@ -6,11 +6,7 @@ import tensorflow as tf
 
 import gen
 
-# TODO: Recwive as arguments
-BALL_IMG_PATH = Path("./res/ball.jpg")
 VAL2017_FOLDER_PATH = Path("/home/mbernardi/extra/async/ipcv/sem_3/deep_learning/labs/5/val2017")
-DATA_VERSION = "v4"
-
 
 class Case:
 
@@ -209,15 +205,15 @@ def train(cases_path):
         ))
 
     # for size in [68, 100, 200]:
-    for size in [68, 100, 200]:
+    for size in [68]:
 
         case = Case(
                 model=model,
                 batch_size=16,
-                num_batches=3,
-                # num_batches=10,
-                num_epochs=10,
-                # num_epochs=100,
+                # num_batches=3,
+                num_batches=10,
+                # num_epochs=10,
+                num_epochs=100,
                 optimizer=tf.keras.optimizers.Adam(lr=1e-3),
                 loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
                 metrics=[
@@ -231,10 +227,10 @@ def train(cases_path):
                 gen_params={
                     # Dataset: Background and ball images
                     "folder_path": str(VAL2017_FOLDER_PATH),
-                    "obj_path": str(BALL_IMG_PATH),
+                    "obj_path": str(Path("./res/ball_transparent.png")),
 
                     # Shape of object in ground truth, "rect" or "ellipse"
-                    "ground_truth_shape": "rect",
+                    "ground_truth_shape": "ellipse",
 
                     # Needed divisibility of the width and height of images. Depends
                     # in amount of downsampling
@@ -244,7 +240,7 @@ def train(cases_path):
                     # otherwise padding will be added.
                     # Used in training dataset but also in validation dataset during
                     # training, but not during evaluation.
-                    "train_val_img_size": (200, 200),
+                    "train_val_img_size": (size, size),
                 },
                 notes="",
             )
