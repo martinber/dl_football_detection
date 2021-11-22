@@ -57,6 +57,10 @@ Read `./main.py -h` for more.
 
 - `./main.py eval {model_id}`: Evaluate trained model.
 
+## Attributions
+
+- `ball_2_transparent`: A. Scott Fulkerson, CC BY-SA 4.0, via Wikimedia Commons
+
 ## Links
 
 - https://github.com/tensorflow/models/blob/master/research/object_detection/README.md

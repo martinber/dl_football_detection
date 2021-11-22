@@ -3,6 +3,7 @@ import json
 
 import tensorflow as tf
 import matplotlib.pyplot as plt
+import numpy as np
 
 import gen
 
@@ -40,6 +41,11 @@ def plot_example(model, gen_params):
 
         aximg = ax4.imshow(threshold_img(y_est))
         ax4.set_title("Output thresholded")
+
+        pos = get_ball_pos(y_est)
+        ax2.scatter(pos[0], pos[1], marker="x", color="red", s=20)
+        ax3.scatter(pos[0], pos[1], marker="x", color="red", s=20)
+        ax4.scatter(pos[0], pos[1], marker="x", color="red", s=20)
 
         plt.draw()
         plt.pause(0.001)
@@ -80,11 +86,23 @@ def threshold_img(y):
     """
     return y > 0.5
 
-def get_ball_pos(y):
+def get_ball_pos(heatmap):
     """
     Returns ball position from output of neural network.
     """
-    mask = threshold_img(y)
+    mask = threshold_img(heatmap)
+
+    total = mask.sum()
+
+    # Get center of mass
+    h, w = heatmap.shape
+    x_coords = np.arange(0, w)
+    y_coords = np.arange(0, h)
+
+    x = (x_coords * mask.sum(axis=0)).sum() / total
+    y = (y_coords * mask.sum(axis=1)).sum() / total
+
+    return x, y
 
 
 def evaluate(case_id, cases_path, history, history_ignore, examples):
