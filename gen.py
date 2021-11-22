@@ -4,6 +4,7 @@ Code to load images and generate datasets.
 
 import random
 import math
+from pathlib import Path
 
 import numpy as np
 from PIL import Image, ImageDraw
@@ -59,8 +60,7 @@ def _gen_img_pair(bg_path, ball_path, params, evaluation):
 def _preprocess_img(img_array):
     return img_array / np.max(img_array)
 
-def image_generator(folder_path, ball_path, batch_size, num_batches=None,
-        shuffle=True, params={}, evaluation=False):
+def image_generator(batch_size, num_batches, shuffle, params, evaluation):
     """
     Generator that loads images and creates dataset.
 
@@ -69,6 +69,9 @@ def image_generator(folder_path, ball_path, batch_size, num_batches=None,
 
     It can be used directly with tf.data.Dataset.from_generator()
 
+    num_batches can be None and in that case it will generate batches until
+    running out of images
+
     params is a dict that can give information. For example to create smaller
     images, or create a different kind of ground truth.
 
@@ -76,6 +79,8 @@ def image_generator(folder_path, ball_path, batch_size, num_batches=None,
     testing evaluation. It is needed because some params are ignored in that
     case.
     """
+    folder_path = Path(params["folder_path"])
+    ball_path = Path(params["obj_path"])
 
     images_paths = list(folder_path.glob("*.jpg"))
     if shuffle:

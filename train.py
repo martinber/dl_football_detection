@@ -10,7 +10,6 @@ import gen
 BALL_IMG_PATH = Path("./res/ball.jpg")
 VAL2017_FOLDER_PATH = Path("/home/mbernardi/extra/async/ipcv/sem_3/deep_learning/labs/5/val2017")
 DATA_VERSION = "v4"
-CASES_PATH = Path(f"./cases/{DATA_VERSION}/")
 
 
 class Case:
@@ -107,9 +106,9 @@ class Case:
         with open(json_path, "w") as f:
             json.dump(data, f)
 
-def train_case(case):
+def train_case(case, cases_path):
 
-    case_path = CASES_PATH / case.id
+    case_path = cases_path / case.id
     case_path.mkdir(parents=True)
 
     checkpoint_path = case_path / "cp.ckpt"
@@ -123,8 +122,6 @@ def train_case(case):
 
     train_dataset = tf.data.Dataset.from_generator(
             lambda: gen.image_generator(
-                VAL2017_FOLDER_PATH,
-                BALL_IMG_PATH,
                 batch_size=case.batch_size,
                 num_batches=case.num_batches,
                 shuffle=True,
@@ -139,8 +136,6 @@ def train_case(case):
 
     val_dataset = tf.data.Dataset.from_generator(
             lambda: gen.image_generator(
-                VAL2017_FOLDER_PATH,
-                BALL_IMG_PATH,
                 batch_size=case.batch_size,
                 num_batches=case.num_batches,
                 shuffle=False,
@@ -165,8 +160,6 @@ def train_case(case):
 
     eval_dataset = tf.data.Dataset.from_generator(
             lambda: gen.image_generator(
-                VAL2017_FOLDER_PATH,
-                BALL_IMG_PATH,
                 batch_size=16,
                 num_batches=10,
                 shuffle=False,
@@ -184,7 +177,7 @@ def train_case(case):
     case.save_description(case_path / "case.json")
 
 
-def train():
+def train(cases_path):
 
     import tensorflow as tf
 
@@ -215,13 +208,16 @@ def train():
             activation='sigmoid', padding='same',
         ))
 
+    # for size in [68, 100, 200]:
     for size in [68, 100, 200]:
 
         case = Case(
                 model=model,
                 batch_size=16,
-                num_batches=10,
-                num_epochs=100,
+                num_batches=3,
+                # num_batches=10,
+                num_epochs=10,
+                # num_epochs=100,
                 optimizer=tf.keras.optimizers.Adam(lr=1e-3),
                 loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
                 metrics=[
@@ -233,6 +229,10 @@ def train():
                     tf.keras.metrics.MeanSquaredError(),
                 ],
                 gen_params={
+                    # Dataset: Background and ball images
+                    "folder_path": str(VAL2017_FOLDER_PATH),
+                    "obj_path": str(BALL_IMG_PATH),
+
                     # Shape of object in ground truth, "rect" or "ellipse"
                     "ground_truth_shape": "rect",
 
@@ -249,4 +249,4 @@ def train():
                 notes="",
             )
 
-        train_case(case)
+        train_case(case, cases_path)

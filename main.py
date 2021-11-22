@@ -5,13 +5,10 @@ import argparse
 
 import listing
 
-BALL_IMG_PATH = Path("./res/ball.jpg")
-VAL2017_FOLDER_PATH = Path("/home/mbernardi/extra/async/ipcv/sem_3/deep_learning/labs/5/val2017")
-
 # Version of the format where I save the models, cases, etc. If in the future
 # I change the format I can just change the string, so a new folder will be made
 # and old things will be left ignored in old folder
-DATA_VERSION = "v4"
+DATA_VERSION = "v5"
 CASES_PATH = Path(f"./cases/{DATA_VERSION}/")
 
 if __name__ == "__main__":
@@ -23,7 +20,7 @@ if __name__ == "__main__":
         # Import now because loads tensorflow and I dont want to be done in
         # other cases because it is slow
         import train
-        train.train()
+        train.train(CASES_PATH)
 
     parser_train = subparsers.add_parser(
             "train",
@@ -37,7 +34,7 @@ if __name__ == "__main__":
         # Import now because loads tensorflow and I dont want to be done in
         # other cases because it is slow
         import evaluate
-        evaluate.evaluate(args.id)
+        evaluate.evaluate(args.id, CASES_PATH, args.plot_history, args.examples)
 
     parser_eval = subparsers.add_parser(
             "eval",
@@ -47,6 +44,14 @@ if __name__ == "__main__":
     parser_eval.add_argument("id",
             type=str,
             help="ID of case to evaluate",
+        )
+    parser_eval.add_argument("--plot-history", "-p",
+            action="store_true",
+            help="Plot history",
+        )
+    parser_eval.add_argument("--examples", "-e",
+            action="store_true",
+            help="Plot examples",
         )
     parser_eval.set_defaults(func=eval_)
 
