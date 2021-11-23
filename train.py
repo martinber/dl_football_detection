@@ -181,20 +181,42 @@ def train(cases_path):
     model = tf.keras.Sequential()
 
     model.add(tf.keras.layers.Conv2D(
-            64, (3, 3),
+            8, (3, 3),
             # dilation_rate=2,
             activation='relu', padding='same',
         ))
     model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
     model.add(tf.keras.layers.Conv2D(
-            64, (3, 3),
+            8, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+    model.add(tf.keras.layers.Conv2D(
+            8, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+    model.add(tf.keras.layers.Conv2D(
+            8, (3, 3),
             # dilation_rate=2,
             activation='relu', padding='same',
         ))
     model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
 
     model.add(tf.keras.layers.Conv2DTranspose(
-            16, (3, 3), strides=2,
+            8, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+    model.add(tf.keras.layers.Conv2DTranspose(
+            8, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+    model.add(tf.keras.layers.Conv2DTranspose(
+            8, (3, 3), strides=2,
             # dilation_rate=2,
             activation='sigmoid', padding='same',
         ))
@@ -205,15 +227,15 @@ def train(cases_path):
         ))
 
     # for size in [68, 100, 200]:
-    for size in [68]:
+    for size in [128]:
 
         case = Case(
                 model=model,
                 batch_size=16,
                 # num_batches=3,
-                num_batches=10,
+                num_batches=100,
                 # num_epochs=10,
-                num_epochs=100,
+                num_epochs=1000,
                 optimizer=tf.keras.optimizers.Adam(lr=1e-3),
                 loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
                 metrics=[
@@ -234,7 +256,7 @@ def train(cases_path):
 
                     # Needed divisibility of the width and height of images. Depends
                     # in amount of downsampling
-                    "divisibility": 4,
+                    "divisibility": 16,
 
                     # Size of images, make divisible by previous parameter or
                     # otherwise padding will be added.
