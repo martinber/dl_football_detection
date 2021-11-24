@@ -352,9 +352,9 @@ def train(cases_path):
     """
 
     # for size in [68, 100, 200]:
-    for size in [128, 256]:
+    for size in [128]:
 
-        model = u_net(input_size=(None,None,3), n_filters=32, n_classes=1)
+        model = u_net(input_size=(None,None,3), n_filters=16, n_classes=1)
 
         case = Case(
                 model=model,
@@ -383,6 +383,11 @@ def train(cases_path):
                     # Used in training dataset but also in validation dataset during
                     # training, but not during evaluation.
                     "train_val_img_size": (size, size),
+
+                    # Modifications to object
+                    "ball_rotate": True,
+                    "ball_size_range": (20, 70),
+                    "ball_brightness": (0.4, 1),
                 },
                 notes="",
             )
