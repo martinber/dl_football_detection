@@ -60,10 +60,12 @@ Read `./main.py -h` for more.
 ## Attributions
 
 - `ball_2_transparent`: A. Scott Fulkerson, CC BY-SA 4.0, via Wikimedia Commons
+- U-net implementation: https://github.com/VidushiBhatia/U-Net-Implementation
 
 ## Links
 
 - https://github.com/tensorflow/models/blob/master/research/object_detection/README.md
+- https://github.com/VidushiBhatia/U-Net-Implementation
 - https://www.kaggle.com/gpiosenka/balls-image-classification
 - COCO 2017 Val images 5K/1GB: https://cocodataset.org/#download
 - https://learnopencv.com/cnn-fully-convolutional-image-classification-with-tensorflow/
