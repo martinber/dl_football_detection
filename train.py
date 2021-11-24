@@ -360,7 +360,7 @@ def train(cases_path):
                 model=model,
                 batch_size=16,
                 # num_batches=3,
-                num_batches=10,
+                num_batches=100,
                 num_epochs=100,
                 # num_epochs=1000,
                 optimizer=tf.keras.optimizers.Adam(lr=1e-3),
@@ -369,7 +369,7 @@ def train(cases_path):
                 gen_params={
                     # Dataset: Background and ball images
                     "folder_path": str(VAL2017_FOLDER_PATH),
-                    "obj_path": str(Path("./res/ball_transparent.png")),
+                    "obj_path": str(Path("./res/ball_2_transparent.png")),
 
                     # Shape of object in ground truth, "rect" or "ellipse"
                     "ground_truth_shape": "ellipse",
