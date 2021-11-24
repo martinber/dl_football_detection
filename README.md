@@ -3,8 +3,8 @@
 Detection and localization of football/soccer ball in images using Deep
 Learning.
 
-Project for a Deep Learning Master program course, the problem itself it easy
-because the idea was to have these features:
+Project for a Deep Learning Master program course, the problem itself its very
+easy to solve. This was a learning exercise to do:
 
 - Save and load models, to be able to evaluate old models and compare.
 
@@ -29,6 +29,8 @@ because the idea was to have these features:
     - The original idea is to train convolutional filters that can easily detect
       the patters in the ball, to do simple object detection without region
       proposals, etc.
+
+    - A U-net model is also tested, which is basically the same idea.
 
 - Automatize hyperparameter search.
 
@@ -55,7 +57,10 @@ Read `./main.py -h` for more.
 
 - `./main.py list`: List all the trained models. Use `-v` for more info.
 
-- `./main.py eval {model_id}`: Evaluate trained model.
+- `./main.py eval {model_id} -e`: Evaluate trained model using examples.
+
+- `./main.py eval {model_id} -p`: Show plots of evolution of metrics for each
+  learning epoch.
 
 ## Attributions
 

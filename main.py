@@ -66,7 +66,7 @@ if __name__ == "__main__":
     parser_eval.set_defaults(func=eval_)
 
     def list_(args):
-        listing.listing(CASES_PATH, args.filter, args.verbose)
+        listing.listing(CASES_PATH, args.filter, args.print_layers, args.verbose)
 
     parser_eval = subparsers.add_parser(
             "list",
@@ -75,7 +75,11 @@ if __name__ == "__main__":
                   "show."))
     parser_eval.add_argument("--verbose", "-v",
             action="store_true",
-            help="Show all information about case",
+            help="Show lots of information about each case",
+        )
+    parser_eval.add_argument("--print-layers", "-l",
+            action="store_true",
+            help="Show list of layers for each case. To be used with -v",
         )
     parser_eval.add_argument("--filter", "-f",
             type=str,

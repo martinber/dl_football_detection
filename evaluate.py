@@ -42,10 +42,14 @@ def plot_example(model, gen_params):
         aximg = ax4.imshow(threshold_img(y_est))
         ax4.set_title("Output thresholded")
 
+        true_pos = get_ball_pos(ground_truth)
         pos = get_ball_pos(y_est)
-        ax2.scatter(pos[0], pos[1], marker="x", color="red", s=20)
-        ax3.scatter(pos[0], pos[1], marker="x", color="red", s=20)
-        ax4.scatter(pos[0], pos[1], marker="x", color="red", s=20)
+        ax2.scatter(true_pos[0], true_pos[1], marker="x", color="green", s=30)
+        ax3.scatter(true_pos[0], true_pos[1], marker="x", color="green", s=30)
+        ax4.scatter(true_pos[0], true_pos[1], marker="x", color="green", s=30)
+        ax2.scatter(pos[0], pos[1], marker="x", color="red", s=30)
+        ax3.scatter(pos[0], pos[1], marker="x", color="red", s=30)
+        ax4.scatter(pos[0], pos[1], marker="x", color="red", s=30)
 
         plt.draw()
         plt.pause(0.001)

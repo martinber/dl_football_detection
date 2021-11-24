@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance
 
 def _paste_ball_in_bg(bg_img, ball_img, params):
     """
@@ -18,10 +18,23 @@ def _paste_ball_in_bg(bg_img, ball_img, params):
 
     Inputs and outputs are PIL Images
     """
+
     bg_w, bg_h = bg_img.size
-    w, h = 50, 50 # Ball size in output image
+
+    # Ball size in output image
+    min_ball_size, max_ball_size = params.get("ball_size_range") or (50, 50)
+    w = random.randint(min_ball_size, max_ball_size)
+    h = w
+
     x = random.randint(0, bg_w - w)
     y = random.randint(0, bg_h - h)
+
+    if params.get("ball_rotate"):
+        ball_img = ball_img.rotate(random.randint(0, 359))
+
+    if params.get("ball_brightness"):
+        multiplier = random.uniform(*params.get("ball_brightness"))
+        ball_img = ImageEnhance.Brightness(ball_img).enhance(multiplier)
 
     ball_img_resized = ball_img.resize((w, h))
     bg_img.paste(ball_img_resized, (x, y), mask=ball_img_resized)

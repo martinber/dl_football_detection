@@ -291,6 +291,15 @@ def train(cases_path):
 
     import tensorflow as tf
 
+    metrics = [
+            tf.keras.metrics.BinaryCrossentropy(from_logits=False),
+            tf.keras.metrics.BinaryAccuracy(threshold=0.5),
+            tf.keras.metrics.Precision(thresholds=0.5),
+            tf.keras.metrics.Recall(thresholds=0.5),
+            tf.keras.metrics.MeanAbsoluteError(),
+            tf.keras.metrics.MeanSquaredError(),
+        ]
+
     """
     # Define model
     model = tf.keras.Sequential()
@@ -341,10 +350,11 @@ def train(cases_path):
             activation='sigmoid', padding='same',
         ))
     """
-    model = u_net(input_size=(None,None,3), n_filters=32, n_classes=1)
 
     # for size in [68, 100, 200]:
     for size in [128, 256]:
+
+        model = u_net(input_size=(None,None,3), n_filters=32, n_classes=1)
 
         case = Case(
                 model=model,
@@ -355,14 +365,7 @@ def train(cases_path):
                 # num_epochs=1000,
                 optimizer=tf.keras.optimizers.Adam(lr=1e-3),
                 loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
-                metrics=[
-                    tf.keras.metrics.BinaryCrossentropy(from_logits=False),
-                    tf.keras.metrics.BinaryAccuracy(threshold=0.5),
-                    tf.keras.metrics.Precision(thresholds=0.5),
-                    tf.keras.metrics.Recall(thresholds=0.5),
-                    tf.keras.metrics.MeanAbsoluteError(),
-                    tf.keras.metrics.MeanSquaredError(),
-                ],
+                metrics=metrics,
                 gen_params={
                     # Dataset: Background and ball images
                     "folder_path": str(VAL2017_FOLDER_PATH),
