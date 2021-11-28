@@ -78,7 +78,7 @@ def plot_history(history, history_ignore):
                 linestyle="dashed", color="C"+str(i)
             )
         ax1.plot(epochs, history[val_metric],
-                label=metric,
+                label=val_metric,
                 linestyle="solid", color="C"+str(i)
             )
 
