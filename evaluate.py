@@ -4,6 +4,7 @@ import json
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
+import skimage.morphology
 
 import gen
 
@@ -86,9 +87,14 @@ def plot_history(history, history_ignore):
 
 def threshold_img(y):
     """
-    Thresholds output of neural network.
+    Thresholds output of neural network and applies morphological operations
     """
-    return y > 0.5
+    mask = y > 0.5
+
+    # Apply morphological erosion
+    kernel = skimage.morphology.disk(radius=2)
+    mask = skimage.morphology.erosion(mask, kernel)
+    return mask
 
 def get_ball_pos(heatmap):
     """
@@ -96,9 +102,18 @@ def get_ball_pos(heatmap):
     """
     mask = threshold_img(heatmap)
 
-    total = mask.sum()
+    if not mask.any():
+        # If mask is empty
+        return 0, 0
+
+    # Leave only the biggest blob in the mask
+    labeled_mask = skimage.measure.label(mask)
+    blobs_sizes = np.bincount(labeled_mask.ravel())[1:] # From 1 to ignore background
+    biggest_blob_label = blobs_sizes.argmax() # Add 1 because we removed background
+    mask = (labeled_mask == biggest_blob_label + 1)
 
     # Get center of mass
+    total = mask.sum()
     h, w = heatmap.shape
     x_coords = np.arange(0, w)
     y_coords = np.arange(0, h)
