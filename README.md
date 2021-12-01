@@ -51,6 +51,10 @@ easy to solve. This was a learning exercise to try some things:
 
 ## Usage
 
+First, download the
+[COCO 2017 Val dataset](http://images.cocodataset.org/zips/val2017.zip) and
+write the path in `train.py`.
+
 Read `./main.py -h` for more.
 
 - `./main.py train`: Trains models and saves them automatically. Before running,
@@ -63,6 +67,11 @@ Read `./main.py -h` for more.
 
 - `./main.py eval {model_id} -p`: Show plots of evolution of metrics for each
   learning epoch.
+
+## Colab usage
+
+This can be used in Google Colab, a not very polished example is in
+`colab_run.ipynb`
 
 ## Attributions
 
