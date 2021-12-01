@@ -3,6 +3,8 @@
 Detection and localization of football/soccer ball in images using Deep
 Learning.
 
+In the `report/` folder there are more explanations.
+
 Project for a Deep Learning Master program course, the problem itself its very
 easy to solve. This was a learning exercise to try some things:
 
