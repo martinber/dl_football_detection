@@ -4,7 +4,7 @@ Detection and localization of football/soccer ball in images using Deep
 Learning.
 
 Project for a Deep Learning Master program course, the problem itself its very
-easy to solve. This was a learning exercise to do:
+easy to solve. This was a learning exercise to try some things:
 
 - Save and load models, to be able to evaluate old models and compare.
 
@@ -32,8 +32,6 @@ easy to solve. This was a learning exercise to do:
 
     - A U-net model is also tested, which is basically the same idea.
 
-- Automatize hyperparameter search.
-
 - Generate datasets on the go.
 
     - The COCO Val 2017 images dataset is used but it could be just any amount
@@ -46,14 +44,16 @@ easy to solve. This was a learning exercise to do:
 
     - Padding is done to make all images in the batch to have same size.
 
-    - Several simple image processing operations can be done.
+    - Several simple image processing operations can be done with the ball:
+      rotation, scaling, brightness.
 
 ## Usage
 
 Read `./main.py -h` for more.
 
 - `./main.py train`: Trains models and saves them automatically. Before running,
-  define the models to train in the file `train.py`.
+  define the models and parameters to use in the function `train()` in
+  `train.py`.
 
 - `./main.py list`: List all the trained models. Use `-v` for more info.
 
@@ -67,7 +67,7 @@ Read `./main.py -h` for more.
 - `ball_2_transparent`: A. Scott Fulkerson, CC BY-SA 4.0, via Wikimedia Commons
 - U-net implementation: https://github.com/VidushiBhatia/U-Net-Implementation
 
-## Links
+## Some links
 
 - https://github.com/tensorflow/models/blob/master/research/object_detection/README.md
 - https://github.com/VidushiBhatia/U-Net-Implementation

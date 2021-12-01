@@ -172,6 +172,62 @@ def train_case(case, cases_path):
     case.model.save(case_path)
     case.save_description(case_path / "case.json")
 
+def simple_fcn():
+    """
+    Define a simple FCN model
+    """
+    # Define model
+    model = tf.keras.Sequential()
+
+    model.add(tf.keras.layers.Conv2D(
+            8, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+    model.add(tf.keras.layers.Conv2D(
+            8, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+    model.add(tf.keras.layers.Conv2D(
+            8, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+    model.add(tf.keras.layers.Conv2D(
+            8, (3, 3),
+            # dilation_rate=2,
+            activation='relu', padding='same',
+        ))
+    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
+
+    model.add(tf.keras.layers.Conv2DTranspose(
+            8, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+    model.add(tf.keras.layers.Conv2DTranspose(
+            8, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+    model.add(tf.keras.layers.Conv2DTranspose(
+            8, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+    model.add(tf.keras.layers.Conv2DTranspose(
+            1, (3, 3), strides=2,
+            # dilation_rate=2,
+            activation='sigmoid', padding='same',
+        ))
+
+    return model
+
+
 def u_net(input_size=(128, 128, 3), n_filters=32, n_classes=3):
     """
     Combine both encoder and decoder blocks according to the U-Net research paper
@@ -300,69 +356,16 @@ def train(cases_path):
             tf.keras.metrics.MeanSquaredError(),
         ]
 
-    """
-    # Define model
-    model = tf.keras.Sequential()
+    for size in [128, 256]:
 
-    model.add(tf.keras.layers.Conv2D(
-            8, (3, 3),
-            # dilation_rate=2,
-            activation='relu', padding='same',
-        ))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
-    model.add(tf.keras.layers.Conv2D(
-            8, (3, 3),
-            # dilation_rate=2,
-            activation='relu', padding='same',
-        ))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
-    model.add(tf.keras.layers.Conv2D(
-            8, (3, 3),
-            # dilation_rate=2,
-            activation='relu', padding='same',
-        ))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
-    model.add(tf.keras.layers.Conv2D(
-            8, (3, 3),
-            # dilation_rate=2,
-            activation='relu', padding='same',
-        ))
-    model.add(tf.keras.layers.MaxPooling2D((2, 2), padding="same"))
-
-    model.add(tf.keras.layers.Conv2DTranspose(
-            8, (3, 3), strides=2,
-            # dilation_rate=2,
-            activation='sigmoid', padding='same',
-        ))
-    model.add(tf.keras.layers.Conv2DTranspose(
-            8, (3, 3), strides=2,
-            # dilation_rate=2,
-            activation='sigmoid', padding='same',
-        ))
-    model.add(tf.keras.layers.Conv2DTranspose(
-            8, (3, 3), strides=2,
-            # dilation_rate=2,
-            activation='sigmoid', padding='same',
-        ))
-    model.add(tf.keras.layers.Conv2DTranspose(
-            1, (3, 3), strides=2,
-            # dilation_rate=2,
-            activation='sigmoid', padding='same',
-        ))
-    """
-
-    # for size in [68, 100, 200]:
-    for size in [128]:
-
-        model = u_net(input_size=(None,None,3), n_filters=16, n_classes=1)
+        # model = u_net(input_size=(None,None,3), n_filters=16, n_classes=1)
+        model = simple_fcn()
 
         case = Case(
                 model=model,
                 batch_size=16,
-                # num_batches=3,
                 num_batches=100,
-                num_epochs=100,
-                # num_epochs=1000,
+                num_epochs=300,
                 optimizer=tf.keras.optimizers.Adam(lr=1e-3),
                 loss=tf.keras.losses.BinaryCrossentropy(from_logits=False),
                 metrics=metrics,
